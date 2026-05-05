@@ -1,0 +1,1323 @@
+================================================================================
+  SKYVOYAGE — COMPLETE BACKEND API SPECIFICATION
+  Generated from full codebase analysis of React frontend
+  All endpoints use JSON request/response bodies
+  Base URL: https://api.skyvoyage.com/v1
+  Authentication: Bearer JWT token in Authorization header (all * marked routes)
+================================================================================
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  MODULE 1: AUTHENTICATION
+  Frontend service: AuthContext.jsx
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ API-01: Register User
+│ Method : POST
+│ URL    : /auth/register
+└─────────────────────────────────────────────────────────────────────────────
+  INPUT (Request Body):
+  {
+    "name"     : "Umesh Sharma",        // string, required, min 2 chars
+    "email"    : "umesh@example.com",   // string, required, valid email
+    "password" : "SecurePass@123"       // string, required, min 8 chars
+    "userId"   : "U004"                // string, required, min 2 chars
+  }
+
+  OUTPUT (201 Created):
+  {
+    "success" : true,
+    "user": {
+      "id"        : "USR-8f2a1c",
+      "name"      : "Umesh Sharma",
+      "email"     : "umesh@example.com",
+      "tier"      : "silver",
+      "createdAt" : "2025-04-20T08:00:00.000Z"
+    }
+  }
+
+  OUTPUT (400 Bad Request - validation):
+  {
+    "success" : false,
+    "error"   : "Email already registered."
+  }
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ API-02: Login User
+│ Method : POST
+│ URL    : /auth/login
+└─────────────────────────────────────────────────────────────────────────────
+  INPUT (Request Body):
+  {
+    "email"    : "umesh@example.com",
+    "password" : "SecurePass@123"
+  }
+
+  OUTPUT (200 OK):
+{
+  "success": true,
+  "user": {
+    "id": "USR-8f2a1c",
+    "name": "Umesh Sharma",
+    "email": "umesh@example.com",
+    "created_at": "2026-04-21T12:45:30+05:30",
+    "phone": "+91-9876543210",
+    "tier": "Silver",
+    "loyalty_points": "5000",
+    "avatar_url": "..."
+  }
+}
+
+  OUTPUT (401 Unauthorized):
+  {
+    "success" : false,
+    "error"   : "Invalid email or password."
+  }
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ API-03: Logout User
+│ Method : POST  *
+│ URL    : /auth/logout
+└─────────────────────────────────────────────────────────────────────────────
+  INPUT (Headers):
+    Authorization: Bearer <token>
+  INPUT (Request Body):
+  {
+    "refreshToken" : "dGhpcyBpcyBhIHJlZnJlc2ggdG9rZW4..."
+  }
+
+  OUTPUT (200 OK):
+  {
+    "success" : true,
+    "message" : "Logged out successfully."
+  }
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ API-04: Refresh Access Token
+│ Method : POST
+│ URL    : /auth/refresh
+└─────────────────────────────────────────────────────────────────────────────
+  INPUT (Request Body):
+  {
+    "refreshToken" : "dGhpcyBpcyBhIHJlZnJlc2ggdG9rZW4..."
+  }
+
+  OUTPUT (200 OK):
+  {
+    "token"        : "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "refreshToken" : "bmV3UmVmcmVzaFRva2Vu..."
+  }
+
+  OUTPUT (401 Unauthorized - expired/invalid):
+  {
+    "success" : false,
+    "error"   : "Refresh token expired. Please log in again."
+  }
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  MODULE 2: FLIGHTS
+  Frontend service: flightService.js
+  UI pages       : SearchResults.jsx, BookingPage.jsx, Dashboard.jsx
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ API-05: Search Flights
+│ Method : GET
+│ URL    : /flights/search
+└─────────────────────────────────────────────────────────────────────────────
+  INPUT (Query Parameters):
+    from       = "Mumbai"     // string — city name or IATA code
+    to         = "Delhi"      // string — city name or IATA code
+    date       = "2025-05-10" // string — ISO date (YYYY-MM-DD)
+    passengers = 2            // integer — 1 to 9
+    class      = "economy"    // string — "economy" | "business"
+    tripType   = "one-way"    // string — "one-way" | "round-trip"
+    returnDate = "2025-05-15" // string — required only if round-trip
+
+  OUTPUT (200 OK):
+  {
+    "success" : true,
+    "results" : [
+      {
+        "id"            : "F001",
+        "airlineCode"   : "SV",
+        "airline"       : {
+          "name"  : "SkyVoyage",
+          "code"  : "SV",
+          "color" : "#1956D6"
+        },
+        "flightNo"      : "SV 101",
+        "from"          : "Mumbai",
+        "fromCode"      : "BOM",
+        "to"            : "Delhi",
+        "toCode"        : "DEL",
+        "departureTime" : "06:00",
+        "arrivalTime"   : "08:10",
+        "durationMin"   : 130,
+        "durationLabel" : "2h 10m",
+        "stops"         : 0,
+        "seatsLeft"     : 18,
+        "rating"        : 4.7,
+        "amenities"     : ["WiFi", "Meal", "Entertainment"],
+        "price": {
+          "economy"  : 4200,
+          "business" : 12500
+        },
+        "displayPrice"  : 8400,   // basePrice * passengers
+        "selectedClass" : "economy",
+        "passengers"    : 2,
+        "tripType"      : "one-way",
+        "searchDate"    : "2025-05-10"
+      }
+      // ... more flights
+    ],
+    "totalCount" : 8
+  }
+
+  OUTPUT (400 Bad Request):
+  {
+    "success" : false,
+    "error"   : "Both origin and destination are required."
+  }
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ API-06: Get Flight by ID
+│ Method : GET
+│ URL    : /flights/{flightId}
+└─────────────────────────────────────────────────────────────────────────────
+  INPUT (Path Parameter):
+    flightId = "F001"
+
+  OUTPUT (200 OK):
+  {
+    "success" : true,
+    "flight"  : {
+      "id"            : "F001",
+      "airlineCode"   : "SV",
+      "airline"       : { "name": "SkyVoyage", "code": "SV", "color": "#1956D6" },
+      "flightNo"      : "SV 101",
+      "from"          : "Mumbai",
+      "fromCode"      : "BOM",
+      "to"            : "Delhi",
+      "toCode"        : "DEL",
+      "departureTime" : "06:00",
+      "arrivalTime"   : "08:10",
+      "durationMin"   : 130,
+      "durationLabel" : "2h 10m",
+      "stops"         : 0,
+      "seatsLeft"     : 18,
+      "rating"        : 4.7,
+      "amenities"     : ["WiFi", "Meal", "Entertainment"],
+      "price"         : { "economy": 4200, "business": 12500 }
+    }
+  }
+
+  OUTPUT (404 Not Found):
+  {
+    "success" : false,
+    "error"   : "Flight F999 not found."
+  }
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ API-07: Get All Cities (Autocomplete)
+│ Method : GET
+│ URL    : /flights/cities
+└─────────────────────────────────────────────────────────────────────────────
+  INPUT (Query Parameters):
+    q = "mum"   // optional — search term for autocomplete
+
+  OUTPUT (200 OK):
+  {
+    "success" : true,
+    "cities"  : [
+      { "name": "Mumbai",    "code": "BOM", "country": "India" },
+      { "name": "Delhi",     "code": "DEL", "country": "India" },
+      { "name": "Bangalore", "code": "BLR", "country": "India" },
+      { "name": "Chennai",   "code": "MAA", "country": "India" },
+      { "name": "Dubai",     "code": "DXB", "country": "UAE" }
+      // ... 15 total cities
+    ]
+  }
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ API-08: Get Flight Recommendations
+│ Method : GET
+│ URL    : /flights/recommend
+└─────────────────────────────────────────────────────────────────────────────
+  INPUT (Query Parameters):
+    from        = "Mumbai"
+    to          = "Delhi"
+    date        = "2025-05-10"
+    passengers  = 2
+    class       = "economy"
+    preference  = "best"    // "cheap" | "fast" | "best"
+    topN        = 3         // integer — how many to recommend
+
+  OUTPUT (200 OK):
+  {
+    "success"         : true,
+    "recommendations" : [
+      {
+        "id"                   : "F001",
+        // ...all flight fields from API-05...
+        "isRecommended"        : true,
+        "recommendationReason" : "Top rated",
+        "_score"               : 0.82
+      }
+    ]
+  }
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  MODULE 3: SEAT MAP
+  Frontend service: bookingService.js (getSeatMap)
+  UI page        : BookingPage.jsx
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ API-09: Get Seat Map for Flight
+│ Method : GET
+│ URL    : /flights/{flightId}/seats
+└─────────────────────────────────────────────────────────────────────────────
+  INPUT (Path Parameter):
+    flightId = "F001"
+  INPUT (Query Parameters):
+    class = "economy"   // optional — filter by "economy" | "business" | "all"
+
+  OUTPUT (200 OK):
+  {
+    "success"  : true,
+    "flightId" : "F001",
+    "seatMap"  : {
+      "business" : [
+        {
+          "row"   : 1,
+          "seats" : [
+            { "id": "1A", "label": "A", "class": "business", "status": "available", "extraPrice": 2500, "feature": "Window" },
+            { "id": "1B", "label": "B", "class": "business", "status": "booked",    "extraPrice": 2000, "feature": "Middle" },
+            { "id": "1C", "label": "C", "class": "business", "status": "available", "extraPrice": 2000, "feature": "Aisle"  },
+            { "id": "1D", "label": "D", "class": "business", "status": "available", "extraPrice": 2500, "feature": "Window" }
+          ]
+        }
+        // rows 1-6
+      ],
+      "economy" : [
+        {
+          "row"   : 7,
+          "seats" : [
+            { "id": "7A", "label": "A", "class": "economy", "status": "available", "extraPrice": 800, "feature": "Window" },
+            { "id": "7B", "label": "B", "class": "economy", "status": "booked",    "extraPrice": 600, "feature": "Middle" },
+            { "id": "7C", "label": "C", "class": "economy", "status": "available", "extraPrice": 400, "feature": "Aisle"  },
+            { "id": "7D", "label": "D", "class": "economy", "status": "available", "extraPrice": 400, "feature": "Aisle"  },
+            { "id": "7E", "label": "E", "class": "economy", "status": "available", "extraPrice": 600, "feature": "Middle" },
+            { "id": "7F", "label": "F", "class": "economy", "status": "available", "extraPrice": 800, "feature": "Window" }
+          ]
+        }
+        // rows 7-30
+      ]
+    }
+  }
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  MODULE 4: BOOKINGS
+  Frontend service: bookingService.js, cancelService.js
+  UI pages        : BookingPage.jsx, MyBookings.jsx, Dashboard.jsx
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ API-10: Create Booking  *
+│ Method : POST  *
+│ URL    : /bookings
+└─────────────────────────────────────────────────────────────────────────────
+  INPUT (Request Body):
+  {
+    "flightId"      : "F001",
+    "flightNo"      : "SV 101",
+    "cabinClass"    : "economy",          // "economy" | "business"
+    "selectedSeats" : ["12A", "12B"],     // array of seat IDs
+    "passengerList" : [
+      {
+        "name"  : "Umesh Sharma",
+        "email" : "umesh@example.com",
+        "phone" : "+91-9876543210"
+      },
+      {
+        "name"  : "Priya Sharma",
+        "email" : "priya@example.com",
+        "phone" : "+91-9876543211"
+      }
+    ],
+    "meals" : {
+      "veg"    : 1,     // count
+      "nonVeg" : 1      // count
+    },
+    "basePrice" : 4200    // per-person base price (economy/business)
+  }
+
+  OUTPUT (201 Created):
+  {
+    "success"  : true,
+    "booking"  : {
+      "bookingRef"     : "SV-A3F9K2",
+      "flightId"       : "F001",
+      "flightNo"       : "SV 101",
+      "cabinClass"     : "economy",
+      "passengers"     : [
+        { "name": "Umesh Sharma",  "email": "umesh@example.com", "phone": "+91-9876543210" },
+        { "name": "Priya Sharma",  "email": "priya@example.com", "phone": "+91-9876543211" }
+      ],
+      "seats"          : ["12A", "12B"],
+      "meals"          : { "veg": 1, "nonVeg": 1 },
+      "seatExtra"      : 1400,
+      "mealCost"       : 600,
+      "basePrice"      : 8400,
+      "subtotal"       : 10400,
+      "tax"            : 1248,
+      "totalPrice"     : 11648,
+      "status"         : "confirmed",
+      "bookedAt"       : "2025-04-20T14:31:00.000Z",
+      "flightFrom"     : "Mumbai",
+      "flightTo"       : "Delhi",
+      "flightDeparture": "06:00"
+    }
+  }
+
+  OUTPUT (409 Conflict — seat no longer available):
+  {
+    "success" : false,
+    "error"   : "Seat 12A is no longer available. Please select a different seat."
+  }
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ API-11: Get All Bookings for Logged-In User  *
+│ Method : GET  *
+│ URL    : /bookings
+└─────────────────────────────────────────────────────────────────────────────
+  INPUT (Query Parameters):
+    status  = "confirmed"  // optional filter: "confirmed"|"cancelled"|"all"
+    page    = 1            // optional pagination
+    limit   = 20           // optional pagination
+
+  OUTPUT (200 OK):
+  {
+    "success"  : true,
+    "bookings" : [
+      {
+        "bookingRef"      : "SV-A3F9K2",
+        "flightId"        : "F001",
+        "flightNo"        : "SV 101",
+        "cabinClass"      : "economy",
+        "passengers"      : [ { "name": "Umesh Sharma", "email": "umesh@example.com" } ],
+        "seats"           : ["12A"],
+        "meals"           : { "veg": 1, "nonVeg": 0 },
+        "totalPrice"      : 5856,
+        "status"          : "confirmed",
+        "checkinStatus"   : null,            // null | "checked-in"
+        "bookedAt"        : "2025-04-20T14:31:00.000Z",
+        "flightFrom"      : "Mumbai",
+        "flightTo"        : "Delhi",
+        "flightDeparture" : "06:00"
+      }
+    ],
+    "total" : 1,
+    "page"  : 1
+  }
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ API-12: Get Single Booking by PNR  *
+│ Method : GET  *
+│ URL    : /bookings/{bookingRef}
+└─────────────────────────────────────────────────────────────────────────────
+  INPUT (Path Parameter):
+    bookingRef = "SV-A3F9K2"
+
+  OUTPUT (200 OK):
+  {
+    "success" : true,
+    "booking" : {
+      // ...full booking object as in API-11 response...
+      "boardingPass" : null    // or boarding pass object if checked in
+    }
+  }
+
+  OUTPUT (404 Not Found):
+  {
+    "success" : false,
+    "error"   : "Booking SV-A3F9K2 not found."
+  }
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ API-13: Cancel Booking  *
+│ Method : PATCH  *
+│ URL    : /bookings/{bookingRef}/cancel
+└─────────────────────────────────────────────────────────────────────────────
+  INPUT (Path Parameter):
+    bookingRef = "SV-A3F9K2"
+  INPUT (Request Body, optional):
+  {
+    "reason" : "Plans changed"   // optional cancellation reason
+  }
+
+  OUTPUT (200 OK):
+  {
+    "success" : true,
+    "booking" : {
+      "bookingRef"  : "SV-A3F9K2",
+      "status"      : "cancelled",
+      "cancelledAt" : "2025-04-21T10:00:00.000Z",
+      "refundAmount": 5246,     // calculated refund (e.g. 90%)
+      "refundStatus": "processing"
+    }
+  }
+
+  OUTPUT (400 Bad Request — already cancelled):
+  {
+    "success" : false,
+    "error"   : "Booking SV-A3F9K2 is already cancelled."
+  }
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  MODULE 5: WEB CHECK-IN
+  Frontend service: checkinService.js
+  UI page        : CheckinPage.jsx
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ API-14: Lookup Booking by PNR (Check-in Step 1)
+│ Method : GET
+│ URL : /checkin/lookup
+└─────────────────────────────────────────────────────────────────────────────
+
+INPUT (Query Parameters):
+pnr = "B001" // booking_id used as PNR
+
+OUTPUT (200 OK):
+{
+"success" : true,
+"booking" : {
+"bookingRef" : "B001",
+"flightId" : "F101",
+"cabinClass" : "Business",
+"passengers" : [
+{ "name": "Umesh Prasad" }
+],
+"seats" : ["1A"],
+"status" : "Confirmed",
+"checkinStatus" : "Checked-in"
+},
+"flight" : {
+"id" : "F101",
+"from" : "Pune",
+"to" : "Delhi",
+"departureTime" : "08:00:00",
+"arrivalTime" : "10:10:00"
+}
+}
+
+OUTPUT (404 Not Found):
+{
+"success" : false,
+"error" : "Booking "B001" not found. Please check your PNR and try again."
+}
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ API-15: Perform Web Check-In  *
+│ Method : POST  *
+│ URL    : /checkin
+└─────────────────────────────────────────────────────────────────────────────
+  INPUT (Request Body):
+  {
+    "bookingRef" : "SV-A3F9K2",
+    "seat"       : "12A"         // optional override seat
+  }
+
+  OUTPUT (200 OK):
+  {
+    "success" : true,
+    "booking" : {
+      "bookingRef"    : "SV-A3F9K2",
+      "checkinStatus" : "checked-in",
+      "checkedInAt"   : "2025-04-20T15:00:00.000Z",
+      "boardingPass"  : {
+        "gate"        : "B12",
+        "terminal"    : "T2",
+        "seat"        : "12A",
+        "boardingTime": "05:15"
+      }
+    },
+    "boardingPass" : {
+      "passengerName"  : "Umesh Sharma",
+      "bookingRef"     : "SV-A3F9K2",
+      "flightNo"       : "SV 101",
+      "flightId"       : "F001",
+      "cabinClass"     : "economy",
+      "seat"           : "12A",
+      "from"           : "Mumbai",
+      "fromCode"       : "BOM",
+      "to"             : "Delhi",
+      "toCode"         : "DEL",
+      "departureTime"  : "06:00",
+      "arrivalTime"    : "08:10",
+      "boardingTime"   : "05:15",
+      "gate"           : "B12",
+      "terminal"       : "T2",
+      "checkedInAt"    : "2025-04-20T15:00:00.000Z",
+      "airlineColor"   : "#1956D6",
+      "durationLabel"  : "2h 10m",
+      "stops"          : 0
+    }
+  }
+
+  OUTPUT (400 Bad Request — already checked in):
+  {
+    "success" : false,
+    "error"   : "Already checked in."
+  }
+
+  OUTPUT (400 Bad Request — cancelled booking):
+  {
+    "success" : false,
+    "error"   : "This booking has been cancelled."
+  }
+
+  OUTPUT (400 Bad Request — outside check-in window):
+  {
+    "success" : false,
+    "error"   : "Online check-in is only available between 24 hours and 1 hour before departure."
+  }
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  MODULE 6: FLIGHT STATUS
+  Frontend service: flightStatusService.js
+  UI page        : FlightStatusPage.jsx, MiniDepartureBoard.jsx
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  STATUS ENUM VALUES:
+    "scheduled"    — more than 3 hours to departure
+    "on-time"      — 1-3 hours to departure, no delay
+    "delayed"      — has a delay (any window)
+    "boarding-soon"— 15-60 min to departure
+    "boarding"     — departure imminent (-15 to +15 min)
+    "departed"     — departed but not arrived
+    "landed"       — arrived
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ API-16: Get Flight Status by Flight ID
+│ Method : GET
+│ URL    : /flights/{flightId}/status
+└─────────────────────────────────────────────────────────────────────────────
+  INPUT (Path Parameter):
+    flightId = "F001"
+  INPUT (Query Parameters):
+    date = "2025-05-10"   // optional — defaults to today
+
+  OUTPUT (200 OK):
+  {
+    "success" : true,
+    "flight"  : {
+      "id"            : "F001",
+      "flightNo"      : "SV 101",
+      "from"          : "Mumbai",
+      "fromCode"      : "BOM",
+      "to"            : "Delhi",
+      "toCode"        : "DEL",
+      "departureTime" : "06:00",
+      "arrivalTime"   : "08:10",
+      "durationMin"   : 130,
+      "durationLabel" : "2h 10m",
+      "airline"       : { "name": "SkyVoyage", "code": "SV", "color": "#1956D6" }
+    },
+    "status"  : {
+      "statusKey"    : "on-time",
+      "label"        : "On Time",
+      "color"        : "emerald",
+      "description"  : "Flight is on time. Boarding begins soon.",
+      "delayed"      : false,
+      "delayMin"     : 0,
+      "gate"         : "B12",
+      "terminal"     : "T2",
+      "scheduledDep" : "06:00",
+      "scheduledArr" : "08:10",
+      "effectiveDep" : "06:00",
+      "effectiveArr" : "08:10",
+      "progressPct"  : 45
+    }
+  }
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ API-17: Get Flight Status by Flight Number
+│ Method : GET
+│ URL    : /flights/status
+└─────────────────────────────────────────────────────────────────────────────
+  INPUT (Query Parameters):
+    flightNo = "SV 101"    // flight number e.g. "SV 101", "6E 204"
+    date     = "2025-05-10"
+
+  OUTPUT (200 OK):
+  {
+    // same structure as API-16
+  }
+
+  OUTPUT (404 Not Found):
+  {
+    "success" : false,
+    "error"   : "Flight \"SV 999\" not found. Try format: SV 101"
+  }
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ API-18: Get All Flights Status (Departure Board)
+│ Method : GET
+│ URL    : /flights/status/all
+└─────────────────────────────────────────────────────────────────────────────
+  INPUT (Query Parameters):
+    date     = "2025-05-10"    // optional — defaults to today
+    fromCode = "BOM"           // optional — filter by origin airport
+
+  OUTPUT (200 OK):
+  {
+    "success"  : true,
+    "flights"  : [
+      {
+        "flight" : { /* same flight object */ },
+        "status" : { /* same status object */ }
+      }
+      // all flights sorted by effectiveDep time
+    ]
+  }
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  MODULE 7: USER PROFILE
+  Frontend service: userService.js
+  UI page        : ProfilePage.jsx, Dashboard.jsx
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ API-19: Get User Profile  *
+│ Method : GET  *
+│ URL    : /users/me
+└─────────────────────────────────────────────────────────────────────────────
+  INPUT: (none — uses JWT to identify user)
+
+  OUTPUT (200 OK):
+  {
+    "success" : true,
+    "user"    : {
+      "id"          : "USR-8f2a1c",
+      "name"        : "Umesh Sharma",
+      "gender"      : "Male",
+      "dob"         : "1995-03-15",
+      "city"        : "Mumbai",
+      "nationality" : "Indian",
+      "email"       : "umesh@example.com",
+      "phone"       : "+91-9876543210",
+      "preferences" : {
+        "seat"          : "window",
+        "meal"          : "veg",
+        "notifications" : true,
+        "currency"      : "INR"
+      },
+      "frequentFlyer" : "SV-FF-123456",
+      "tier"          : "silver",
+      "avatar"        : null,     // URL string or null
+      "createdAt"     : "2025-01-10T08:00:00.000Z",
+      "updatedAt"     : "2025-04-18T13:22:00.000Z"
+    }
+  }
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ API-20: Update User Profile  *
+│ Method : PATCH  *
+│ URL    : /users/me
+└─────────────────────────────────────────────────────────────────────────────
+  INPUT (Request Body — all fields optional, send only what changed):
+  {
+    "name"        : "Umesh K. Sharma",
+    "gender"      : "Male",
+    "dob"         : "1995-03-15",
+    "city"        : "Delhi",
+    "nationality" : "Indian",
+    "phone"       : "+91-9876500000",
+    "preferences" : {
+      "seat"          : "aisle",
+      "meal"          : "vegan",
+      "notifications" : false,
+      "currency"      : "USD"
+    }
+  }
+
+  OUTPUT (200 OK):
+  {
+    "success"   : true,
+    "user"      : { /* updated full user object */ },
+    "updatedAt" : "2025-04-20T15:30:00.000Z"
+  }
+
+  OUTPUT (400 Bad Request — validation):
+  {
+    "success" : false,
+    "errors"  : [
+      { "field": "phone", "message": "Invalid phone number format." }
+    ]
+  }
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ API-21: Upload Profile Avatar  *
+│ Method : POST  *
+│ URL    : /users/me/avatar
+│ Content-Type: multipart/form-data
+└─────────────────────────────────────────────────────────────────────────────
+  INPUT (Form Data):
+    avatar : <binary file>   // JPEG/PNG, max 5MB
+
+  OUTPUT (200 OK):
+  {
+    "success"   : true,
+    "avatarUrl" : "https://cdn.skyvoyage.com/avatars/USR-8f2a1c.jpg"
+  }
+
+  OUTPUT (413 Payload Too Large):
+  {
+    "success" : false,
+    "error"   : "File size exceeds 5MB limit."
+  }
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  MODULE 8: SAVED PASSENGERS
+  Frontend service: userService.js (passengers section)
+  UI pages        : ProfilePage.jsx, BookingPage.jsx
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ API-22: Get All Saved Passengers  *
+│ Method : GET  *
+│ URL    : /users/me/passengers
+└─────────────────────────────────────────────────────────────────────────────
+  INPUT: (none)
+
+  OUTPUT (200 OK):
+  {
+    "success"    : true,
+    "passengers" : [
+      {
+        "id"        : "PAX-LF3A8K",
+        "name"      : "Priya Sharma",
+        "email"     : "priya@example.com",
+        "phone"     : "+91-9876543211",
+        "age"       : 28,
+        "gender"    : "Female",
+        "relation"  : "Spouse",
+        "dob"       : "1997-08-22",
+        "createdAt" : "2025-01-15T10:00:00.000Z"
+      }
+    ]
+  }
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ API-23: Add Saved Passenger  *
+│ Method : POST  *
+│ URL    : /users/me/passengers
+└─────────────────────────────────────────────────────────────────────────────
+  INPUT (Request Body):
+  {
+    "name"     : "Rahul Sharma",
+    "email"    : "rahul@example.com",
+    "phone"    : "+91-9876543212",
+    "age"      : 10,
+    "gender"   : "Male",
+    "relation" : "Child",
+    "dob"      : "2015-06-01"
+  }
+
+  OUTPUT (201 Created):
+  {
+    "success"   : true,
+    "passenger" : {
+      "id"        : "PAX-XK9P2M",
+      "name"      : "Rahul Sharma",
+      "email"     : "rahul@example.com",
+      "phone"     : "+91-9876543212",
+      "age"       : 10,
+      "gender"    : "Male",
+      "relation"  : "Child",
+      "dob"       : "2015-06-01",
+      "createdAt" : "2025-04-20T15:45:00.000Z"
+    }
+  }
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ API-24: Update Saved Passenger  *
+│ Method : PATCH  *
+│ URL    : /users/me/passengers/{passengerId}
+└─────────────────────────────────────────────────────────────────────────────
+  INPUT (Path Parameter):
+    passengerId = "PAX-LF3A8K"
+  INPUT (Request Body — partial update):
+  {
+    "phone" : "+91-9999999999",
+    "age"   : 29
+  }
+
+  OUTPUT (200 OK):
+  {
+    "success"   : true,
+    "passenger" : { /* updated passenger object */ }
+  }
+
+  OUTPUT (404 Not Found):
+  {
+    "success" : false,
+    "error"   : "Passenger PAX-XXXXXX not found."
+  }
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ API-25: Delete Saved Passenger  *
+│ Method : DELETE  *
+│ URL    : /users/me/passengers/{passengerId}
+└─────────────────────────────────────────────────────────────────────────────
+  INPUT (Path Parameter):
+    passengerId = "PAX-LF3A8K"
+
+  OUTPUT (200 OK):
+  {
+    "success" : true,
+    "message" : "Passenger PAX-LF3A8K deleted successfully."
+  }
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  MODULE 9: WISHLIST & PRICE ALERTS
+  Frontend context: WishlistContext.jsx (localStorage-based)
+  UI pages        : SearchResults.jsx, ProfilePage.jsx
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ API-26: Get Wishlist  *
+│ Method : GET  *
+│ URL    : /users/me/wishlist
+└─────────────────────────────────────────────────────────────────────────────
+  INPUT: (none)
+
+  OUTPUT (200 OK):
+  {
+    "success"  : true,
+    "wishlist" : [
+      {
+        "id"          : "F001",
+        "flightNo"    : "SV 101",
+        "from"        : "Mumbai",
+        "to"          : "Delhi",
+        "price"       : { "economy": 4200, "business": 12500 },
+        "addedAt"     : "2025-04-19T10:30:00.000Z"
+      }
+    ]
+  }
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ API-27: Toggle Flight in Wishlist  *
+│ Method : POST  *
+│ URL    : /users/me/wishlist/toggle
+└─────────────────────────────────────────────────────────────────────────────
+  INPUT (Request Body):
+  {
+    "flightId" : "F001"
+  }
+
+  OUTPUT (200 OK — added):
+  {
+    "success" : true,
+    "action"  : "added",
+    "flight"  : { /* flight object */ }
+  }
+
+  OUTPUT (200 OK — removed):
+  {
+    "success" : true,
+    "action"  : "removed",
+    "flightId": "F001"
+  }
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ API-28: Get Price Alerts  *
+│ Method : GET  *
+│ URL    : /users/me/price-alerts
+└─────────────────────────────────────────────────────────────────────────────
+  INPUT: (none)
+
+  OUTPUT (200 OK):
+  {
+    "success"      : true,
+    "priceAlerts"  : [
+      {
+        "id"          : "AL-1713600000000",
+        "from"        : "Mumbai",
+        "to"          : "Goa",
+        "targetPrice" : 3000,
+        "createdAt"   : "2025-04-20T10:00:00.000Z",
+        "status"      : "active"     // "active" | "triggered" | "expired"
+      }
+    ]
+  }
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ API-29: Create Price Alert  *
+│ Method : POST  *
+│ URL    : /users/me/price-alerts
+└─────────────────────────────────────────────────────────────────────────────
+  INPUT (Request Body):
+  {
+    "from"        : "Mumbai",
+    "to"          : "Goa",
+    "targetPrice" : 3000      // alert when price drops below this
+  }
+
+  OUTPUT (201 Created):
+  {
+    "success"    : true,
+    "priceAlert" : {
+      "id"          : "AL-1713600000001",
+      "from"        : "Mumbai",
+      "to"          : "Goa",
+      "targetPrice" : 3000,
+      "createdAt"   : "2025-04-20T15:55:00.000Z",
+      "status"      : "active"
+    }
+  }
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ API-30: Delete Price Alert  *
+│ Method : DELETE  *
+│ URL    : /users/me/price-alerts/{alertId}
+└─────────────────────────────────────────────────────────────────────────────
+  INPUT (Path Parameter):
+    alertId = "AL-1713600000000"
+
+  OUTPUT (200 OK):
+  {
+    "success" : true,
+    "message" : "Price alert deleted."
+  }
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  MODULE 10: LOYALTY & REWARDS
+  Frontend: Dashboard.jsx (LoyaltyCard component — computed from bookings)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ API-31: Get Loyalty/Rewards Summary  *
+│ Method : GET  *
+│ URL    : /users/me/loyalty
+└─────────────────────────────────────────────────────────────────────────────
+  INPUT: (none)
+
+  OUTPUT (200 OK):
+  {
+    "success"  : true,
+    "loyalty"  : {
+      "tier"            : "silver",         // "silver" | "gold" | "platinum"
+      "points"          : 4750,
+      "pointsValue"     : 475,              // INR equivalent
+      "confirmedFlights": 2,
+      "totalSpent"      : 22500,
+      "nextTier"        : {
+        "name"           : "gold",
+        "flightsRequired": 5,
+        "flightsNeeded"  : 3
+      },
+      "currentPerks"    : [
+        "Priority boarding",
+        "Free seat selection",
+        "10% discount on meals"
+      ]
+    }
+  }
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ API-32: Get Points Transaction History  *
+│ Method : GET  *
+│ URL    : /users/me/loyalty/history
+└─────────────────────────────────────────────────────────────────────────────
+  INPUT (Query Parameters):
+    page  = 1
+    limit = 20
+
+  OUTPUT (200 OK):
+  {
+    "success"      : true,
+    "transactions" : [
+      {
+        "id"         : "TXN-001",
+        "type"       : "earned",          // "earned" | "redeemed" | "bonus"
+        "points"     : 500,
+        "description": "Booking SV-A3F9K2 confirmed",
+        "date"       : "2025-04-20T14:31:00.000Z"
+      },
+      {
+        "id"         : "TXN-000",
+        "type"       : "bonus",
+        "points"     : 2500,
+        "description": "Welcome bonus points",
+        "date"       : "2025-01-10T08:00:00.000Z"
+      }
+    ],
+    "total" : 2
+  }
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  MODULE 11: NOTIFICATIONS
+  Frontend: Dashboard.jsx (NotificationTray — generated from booking data)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ API-33: Get Notifications  *
+│ Method : GET  *
+│ URL    : /users/me/notifications
+└─────────────────────────────────────────────────────────────────────────────
+  INPUT (Query Parameters):
+    unread  = true    // optional — filter unread only
+    page    = 1
+    limit   = 20
+
+  OUTPUT (200 OK):
+  {
+    "success"       : true,
+    "notifications" : [
+      {
+        "id"      : "notif-booking-SV-A3F9K2",
+        "type"    : "booking",        // "booking"|"checkin"|"cancel"|"alert"|"system"
+        "title"   : "Booking Confirmed",
+        "message" : "SV 101 · Ref: SV-A3F9K2",
+        "read"    : false,
+        "action"  : "/my-bookings",
+        "time"    : "2025-04-20T14:31:00.000Z"
+      }
+    ],
+    "unreadCount" : 3
+  }
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ API-34: Mark Notifications as Read  *
+│ Method : PATCH  *
+│ URL    : /users/me/notifications/read
+└─────────────────────────────────────────────────────────────────────────────
+  INPUT (Request Body):
+  {
+    "ids" : ["notif-booking-SV-A3F9K2", "notif-checkin-SV-A3F9K2"]
+    // OR: "all": true  to mark all as read
+  }
+
+  OUTPUT (200 OK):
+  {
+    "success"     : true,
+    "updatedCount": 2
+  }
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  MODULE 12: DEALS & DESTINATIONS
+  Frontend: FlashDealsBanner.jsx, DestinationCarousel.jsx (static mock data)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ API-35: Get Active Flash Deals
+│ Method : GET
+│ URL    : /deals/flash
+└─────────────────────────────────────────────────────────────────────────────
+  INPUT (Query Parameters):
+    limit  = 5    // optional
+
+  OUTPUT (200 OK):
+  {
+    "success" : true,
+    "deals"   : [
+      {
+        "id"         : "DEAL-001",
+        "badge"      : "Flash Sale",
+        "from"       : "Mumbai",
+        "to"         : "Goa",
+        "fromCode"   : "BOM",
+        "toCode"     : "GOA",
+        "origPrice"  : 4500,
+        "dealPrice"  : 2800,
+        "savings"    : "38% OFF",
+        "seatsLeft"  : 8,
+        "desc"       : "Weekend beach escape · Limited seats",
+        "expiresAt"  : "2025-04-20T18:00:00.000Z",
+        "gradient"   : ["#DC2626", "#EA580C"]
+      }
+    ]
+  }
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ API-36: Get Trending Destinations
+│ Method : GET
+│ URL    : /destinations/trending
+└─────────────────────────────────────────────────────────────────────────────
+  INPUT (Query Parameters):
+    from   = "Mumbai"   // optional — personalize based on user's city
+    limit  = 8
+
+  OUTPUT (200 OK):
+  {
+    "success"      : true,
+    "destinations" : [
+      {
+        "city"        : "Goa",
+        "country"     : "India",
+        "fromCode"    : "BOM",
+        "toCode"      : "GOI",
+        "minPrice"    : 2800,
+        "tag"         : "Top Pick",
+        "season"      : "Best Oct–Mar",
+        "description" : "Pristine beaches, vibrant nightlife...",
+        "imageUrl"    : "https://cdn.skyvoyage.com/destinations/goa.jpg",
+        "highlights"  : ["Baga Beach", "Old Goa", "Dudhsagar Falls"]
+      }
+    ]
+  }
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  SUMMARY TABLE — ALL 36 APIS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  #   | Method | URL                                       | Auth | Module
+  ----|--------|-------------------------------------------|------|------------------
+  01  | POST   | /auth/register                            | No   | Authentication
+  02  | POST   | /auth/login                               | No   | Authentication
+  03  | POST   | /auth/logout                              | Yes  | Authentication
+  04  | POST   | /auth/refresh                             | No   | Authentication
+  05  | GET    | /flights/search                           | No   | Flights
+  06  | GET    | /flights/{flightId}                       | No   | Flights
+  07  | GET    | /flights/cities                           | No   | Flights
+  08  | GET    | /flights/recommend                        | No   | Flights
+  09  | GET    | /flights/{flightId}/seats                 | No   | Seat Map
+  10  | POST   | /bookings                                 | Yes  | Bookings
+  11  | GET    | /bookings                                 | Yes  | Bookings
+  12  | GET    | /bookings/{bookingRef}                    | Yes  | Bookings
+  13  | PATCH  | /bookings/{bookingRef}/cancel             | Yes  | Bookings
+  14  | GET    | /checkin/lookup                           | No   | Check-In
+  15  | POST   | /checkin                                  | Yes  | Check-In
+  16  | GET    | /flights/{flightId}/status                | No   | Flight Status
+  17  | GET    | /flights/status                           | No   | Flight Status
+  18  | GET    | /flights/status/all                       | No   | Flight Status
+  19  | GET    | /users/me                                 | Yes  | User Profile
+  20  | PATCH  | /users/me                                 | Yes  | User Profile
+  21  | POST   | /users/me/avatar                          | Yes  | User Profile
+  22  | GET    | /users/me/passengers                      | Yes  | Passengers
+  23  | POST   | /users/me/passengers                      | Yes  | Passengers
+  24  | PATCH  | /users/me/passengers/{passengerId}        | Yes  | Passengers
+  25  | DELETE | /users/me/passengers/{passengerId}        | Yes  | Passengers
+  26  | GET    | /users/me/wishlist                        | Yes  | Wishlist
+  27  | POST   | /users/me/wishlist/toggle                 | Yes  | Wishlist
+  28  | GET    | /users/me/price-alerts                    | Yes  | Price Alerts
+  29  | POST   | /users/me/price-alerts                    | Yes  | Price Alerts
+  30  | DELETE | /users/me/price-alerts/{alertId}          | Yes  | Price Alerts
+  31  | GET    | /users/me/loyalty                         | Yes  | Loyalty
+  32  | GET    | /users/me/loyalty/history                 | Yes  | Loyalty
+  33  | GET    | /users/me/notifications                   | Yes  | Notifications
+  34  | PATCH  | /users/me/notifications/read              | Yes  | Notifications
+  35  | GET    | /deals/flash                              | No   | Deals
+  36  | GET    | /destinations/trending                    | No   | Destinations
+
+  Total APIs : 36
+  Auth-protected: 25  |  Public: 11
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  COMMON ERROR RESPONSE FORMAT (All APIs)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  {
+    "success"   : false,
+    "error"     : "Human-readable error message here.",
+    "errorCode" : "BOOKING_NOT_FOUND",      // optional machine-readable code
+    "details"   : [ /* optional array of field-level validation errors */ ]
+  }
+
+  HTTP Status Codes used:
+    200  — OK
+    201  — Created
+    400  — Bad Request (validation errors)
+    401  — Unauthorized (no/invalid token)
+    403  — Forbidden (token valid but access denied)
+    404  — Not Found
+    409  — Conflict (seat taken, email exists)
+    413  — Payload Too Large (file upload)
+    500  — Internal Server Error
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  RECOMMENDED HEADERS (Every Request)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Content-Type  : application/json
+  Accept        : application/json
+  Authorization : Bearer <jwt_token>      // for * authenticated routes only
+  X-Client-Ver  : 1.0.0                  // optional versioning header
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  FRONTEND SERVICE → API MIGRATION MAP
+  (Which file to edit when connecting each API)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  src/context/AuthContext.jsx
+    login()   → replace localStorage with POST /auth/login
+    logout()  → add call to POST /auth/logout
+
+  src/services/flightService.js
+    searchFlights()    → GET /flights/search
+    getFlightById()    → GET /flights/{flightId}
+
+  src/services/bookingService.js
+    createBooking()    → POST /bookings
+    getSeatMap()       → GET /flights/{flightId}/seats
+
+  src/services/cancelService.js
+    cancelBooking()    → PATCH /bookings/{bookingRef}/cancel
+
+  src/services/checkinService.js
+    lookupBooking()    → GET /checkin/lookup
+    performCheckin()   → POST /checkin
+
+  src/services/flightStatusService.js
+    getFlightStatusById()  → GET /flights/{flightId}/status
+    getFlightStatusByNo()  → GET /flights/status
+    getAllFlightStatuses()  → GET /flights/status/all
+
+  src/services/userService.js
+    getUser()          → GET  /users/me
+    updateUser()       → PATCH /users/me
+    uploadAvatar()     → POST /users/me/avatar
+    getPassengers()    → GET  /users/me/passengers
+    addPassenger()     → POST /users/me/passengers
+    updatePassenger()  → PATCH /users/me/passengers/{id}
+    deletePassenger()  → DELETE /users/me/passengers/{id}
+
+  src/context/WishlistContext.jsx
+    toggleWishlist()   → POST /users/me/wishlist/toggle
+    addPriceAlert()    → POST /users/me/price-alerts
+    removePriceAlert() → DELETE /users/me/price-alerts/{id}
+
+  src/data/bookings.js (getAllBookings)
+    getAllBookings()    → GET  /bookings
+
+  src/components/FlashDealsBanner.jsx (hardcoded DEALS array)
+    Fetch from        → GET /deals/flash
+
+  src/components/DestinationCarousel.jsx (hardcoded DESTINATIONS array)
+    Fetch from        → GET /destinations/trending
+
+================================================================================
+  END OF API SPECIFICATION
+  SkyVoyage v1.0 — Total: 36 REST APIs
+================================================================================

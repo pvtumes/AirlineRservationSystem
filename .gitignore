@@ -1,0 +1,15 @@
+# Ignore Eclipse/TIBCO metadata
+AirlineBackend/.metadata/
+
+# Logs
+*.log
+
+# Temp files
+*.tmp
+
+# Build folders
+bin/
+target/
+
+# Node modules (if UI uses Node)
+node_modules/

@@ -1,0 +1,63 @@
+Post-Login Dashboard & Flight Search System
+This document outlines the architectural plan to integrate user dashboards, search functionality, and result viewing powered by mock data into the existing SkyVoyage React application.
+
+User Review Required
+IMPORTANT
+
+We need to install react-router-dom to handle navigation between the landing page, dashboard, and search results. Do you approve installing this dependency?
+Should we refactor the existing Landing Page's search box (in the Hero section) to use this new reusable FlightSearch component, or keep them separate? (I'll keep them separate initially to preserve the highly customized landing page styling, but they can be unified).
+Proposed Changes
+1. Dependencies and Routing Setup
+We will restructure the application to support multiple full-page routes using React Router.
+
+[MODIFY] 
+App.jsx
+Wrap the application in BrowserRouter, set up Routes, and isolate the existing landing page into a LandingPage.jsx component acting as the / index route.
+
+2. Mock Data & Services Layer
+Create the structural backend logic on the front end to respond to flight queries.
+
+[NEW] 
+src/data/flights.js
+Generate extensive mock JSON data reflecting realistic flights between major Indian/International cities (Mumbai, Dubai, Singapore, Delhi, etc.) with properties matching your stated DB schema (flight_id, source, destination, travel_date, available_seats, price).
+
+[NEW] 
+src/services/flightService.js
+A lightweight JavaScript utility exporting an async function searchFlights({ source, destination, date, passangers, classType }) that filters flights.js and mimics an API latency to test loading states.
+
+3. Reusable UI Components
+[NEW] 
+src/components/FlightSearchForm.jsx
+A highly polished, self-contained search component built on top of our existing custom dropdowns.
+
+Features: Source & Destination selection, Date Picker, Passenger count, Class dropdown (Economy/Business), and Trip type toggle.
+When the user submits, it will trigger React Router's useNavigate hook to push state over to the /results page.
+[NEW] 
+src/components/DashboardLayout.jsx
+A specific layout wrapper for authenticated users featuring a simplified top Navbar containing the brand logo, user profile avatar, and logout capabilities, stripping away the marketing links.
+
+4. Application Pages
+[NEW] 
+src/pages/LandingPage.jsx
+Will simply encapsulate the current contents of AppContent (Hero, Deals, Destinations, Services, etc.).
+
+[NEW] 
+src/pages/Dashboard.jsx
+The /dashboard route. Displays a personalized "Hi, {user}" greeting and the FlightSearchForm prominently centered.
+
+[NEW] 
+src/pages/SearchResults.jsx
+The /results route. Reads search parameters (either from URL query params or Router state), queries flightService.js, and renders a vertical list of beautiful FlightCard mockups displaying airlines, times, duration, and prices.
+
+[MODIFY] 
+src/components/AuthModal.jsx
+Update the submit handler of the Auth forms. Instead of just closing the modal, it will simulate a login and call navigate('/dashboard').
+
+Verification Plan
+Automated / Fast Verifications
+Run npm install react-router-dom and ensure no breaking dependency conflicts.
+Launch npm run dev and test routing by manually navigating to localhost:5173/dashboard.
+Manual UI/UX Verifications
+Open the landing page and click "Sign In" – mock a sign-in and assert it routes to the dashboard.
+Use the Dashboard's FlightSearch component, pick random parameters, and hit Search.
+Verify that /results renders skeleton loaders and ultimately displays the relevant filtered mock flight cards.

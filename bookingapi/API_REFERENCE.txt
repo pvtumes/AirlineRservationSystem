@@ -1,0 +1,309 @@
+================================================================================
+  SKYVOYAGE BOOKING API — COMPLETE REFERENCE
+  Server  : http://localhost:8089
+  Project : bookingapi (Spring Boot 3.4.4 | Java 21 | PostgreSQL)
+================================================================================
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  API 1 — CREATE FLIGHT BOOKING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  METHOD  : POST
+  URL     : http://localhost:8089/api/bookings
+  HEADERS : Content-Type: application/json
+
+────────────────────────────────────────────────────────────────────────────────
+  REQUEST BODY
+────────────────────────────────────────────────────────────────────────────────
+
+{
+  "userId": "U001",
+  "flightId": "F101",
+  "cabinClass": "Economy",
+  "selectedSeats": ["1B", "1C"],
+  "passengerList": [
+    {
+      "name": "Umesh Prasad",
+      "age": 25,
+      "gender": "Male"
+    },
+    {
+      "name": "Priya Sharma",
+      "age": 23,
+      "gender": "Female"
+    }
+  ],
+  "meals": {
+    "veg": 1,
+    "nonVeg": 1
+  }
+}
+
+  Field Descriptions:
+  ┌─────────────────┬────────────┬──────────────────────────────────────────────┐
+  │ Field           │ Type       │ Description                                  │
+  ├─────────────────┼────────────┼──────────────────────────────────────────────┤
+  │ userId          │ String     │ Must exist in users table (e.g. U001)        │
+  │ flightId        │ String     │ Must exist in flights table (e.g. F101)      │
+  │ cabinClass      │ String     │ "Economy" or "Business"                      │
+  │ selectedSeats   │ String[]   │ Seat numbers (must be 'Available' in DB)     │
+  │ passengerList   │ Object[]   │ Count must equal selectedSeats count         │
+  │  ├ name         │ String     │ Required                                     │
+  │  ├ age          │ Integer    │ Required, >= 0                               │
+  │  └ gender       │ String     │ Required                                     │
+  │ meals           │ Object     │ Meal counts                                  │
+  │  ├ veg          │ Integer    │ Number of veg meals (200 INR each)           │
+  │  └ nonVeg       │ Integer    │ Number of non-veg meals (300 INR each)       │
+  └─────────────────┴────────────┴──────────────────────────────────────────────┘
+
+  Available Test Data (from DB):
+  ┌──────────┬─────────────┬──────────────────────┬───────────────────────────┐
+  │ FlightId │ cabinClass  │ Available Seats       │ Base Price (per pax)      │
+  ├──────────┼─────────────┼──────────────────────┼───────────────────────────┤
+  │ F101     │ Economy     │ 1B, 1C               │ 4500 INR                  │
+  │ F101     │ Business    │ 1B, 1C               │ 12000 INR                 │
+  │ F102     │ Economy     │ 1C                   │ 3200 INR                  │
+  │ F103     │ Economy     │ 1A, 1B, 1C           │ 15000 INR                 │
+  │ F103     │ Business    │ 1A, 1B, 1C           │ 45000 INR                 │
+  └──────────┴─────────────┴──────────────────────┴───────────────────────────┘
+
+  Note: Run this SQL to reset seats if already Booked:
+  UPDATE seats SET seat_status = 'Available'
+  WHERE schedule_id = 1 AND seat_number IN ('1B', '1C');
+
+────────────────────────────────────────────────────────────────────────────────
+  PRICING FORMULA
+────────────────────────────────────────────────────────────────────────────────
+
+  baseAmount  = base_price  × number of passengers
+  seatExtra   = SUM(seat.extra_price)  for each selected seat
+  mealCost    = (veg × 200) + (nonVeg × 300)
+  subtotal    = baseAmount + seatExtra + mealCost
+  tax         = ROUND(subtotal × 12%)
+  totalAmount = subtotal + tax
+
+  Example with F101 Economy, 2 pax, seats 1B+1C, 1 veg + 1 nonVeg:
+  ┌─────────────┬─────────────────────────────────────────────┐
+  │ baseAmount  │ 4500 × 2             = 9000 INR             │
+  │ seatExtra   │ 2000 + 2000          = 4000 INR             │
+  │ mealCost    │ (1×200) + (1×300)    = 500  INR             │
+  │ subtotal    │ 9000 + 4000 + 500    = 13500 INR            │
+  │ tax (12%)   │ 13500 × 0.12         = 1620 INR             │
+  │ totalAmount │ 13500 + 1620         = 15120 INR            │
+  └─────────────┴─────────────────────────────────────────────┘
+
+────────────────────────────────────────────────────────────────────────────────
+  SUCCESS RESPONSE — 201 Created
+────────────────────────────────────────────────────────────────────────────────
+
+{
+  "success": true,
+  "booking": {
+    "bookingRef": "B004",
+    "userId": "U001",
+    "flightId": "F101",
+    "cabinClass": "Economy",
+    "passengers": [
+      {
+        "name": "Umesh Prasad",
+        "age": 25,
+        "gender": "Male"
+      },
+      {
+        "name": "Priya Sharma",
+        "age": 23,
+        "gender": "Female"
+      }
+    ],
+    "seats": ["1B", "1C"],
+    "meals": {
+      "veg": 1,
+      "nonVeg": 1
+    },
+    "pricing": {
+      "baseAmount": 9000,
+      "seatExtra": 4000,
+      "tax": 1620,
+      "totalAmount": 15120
+    },
+    "status": "Confirmed",
+    "checkinStatus": "Pending",
+    "bookedAt": "2026-04-28T13:03:14"
+  }
+}
+
+────────────────────────────────────────────────────────────────────────────────
+  ERROR RESPONSES
+────────────────────────────────────────────────────────────────────────────────
+
+  409 Conflict — Seat already Booked:
+  {
+    "success": false,
+    "error": "One or more selected seats are no longer available"
+  }
+
+  400 Bad Request — Passenger/Seat count mismatch:
+  {
+    "success": false,
+    "error": "Passenger count must match number of selected seats"
+  }
+
+  400 Bad Request — Validation failure:
+  {
+    "success": false,
+    "error": "userId is required"
+  }
+
+  404 Not Found — Invalid flightId:
+  {
+    "success": false,
+    "error": "No schedule found for flightId: FXXX"
+  }
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  API 2 — BULK SAVE PASSENGERS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  METHOD  : POST
+  URL     : http://localhost:8089/api/saved-passengers/bulk
+  HEADERS : Content-Type: application/json
+
+────────────────────────────────────────────────────────────────────────────────
+  REQUEST BODY
+────────────────────────────────────────────────────────────────────────────────
+
+{
+  "userId": "U002",
+  "passengers": [
+    {
+      "name": "Neha Sharma",
+      "age": 26,
+      "gender": "Female",
+      "relation": "Spouse",
+      "dob": "1998-05-10",
+      "email": "neha@example.com",
+      "phone": "+91-9876543299"
+    },
+    {
+      "name": "Rahul Sharma",
+      "age": 30,
+      "gender": "Male",
+      "relation": "Brother",
+      "dob": "1994-02-12",
+      "email": "rahul@example.com",
+      "phone": "+91-9876543200"
+    }
+  ]
+}
+
+  Field Descriptions:
+  ┌──────────────────┬────────────┬───────────────────────────────────────────┐
+  │ Field            │ Type       │ Description                               │
+  ├──────────────────┼────────────┼───────────────────────────────────────────┤
+  │ userId           │ String     │ Required. User to link passengers to      │
+  │ passengers       │ Object[]   │ Required. At least 1 item                 │
+  │  ├ name          │ String     │ Required                                  │
+  │  ├ age           │ Integer    │ Required, >= 0                            │
+  │  ├ gender        │ String     │ Required ("Male" / "Female")              │
+  │  ├ relation      │ String     │ Optional (e.g. Spouse, Brother, Friend)   │
+  │  ├ dob           │ String     │ Optional. Format: "yyyy-MM-dd"            │
+  │  ├ email         │ String     │ Optional                                  │
+  │  └ phone         │ String     │ Optional                                  │
+  └──────────────────┴────────────┴───────────────────────────────────────────┘
+
+  Available Test Users:
+  ┌─────────┬────────────────┬────────────────────────┐
+  │ userId  │ name           │ email                  │
+  ├─────────┼────────────────┼────────────────────────┤
+  │ U001    │ Umesh Prasad   │ umesh@example.com      │
+  │ U002    │ Rahul Sharma   │ rahul@example.com      │
+  │ U003    │ Anjali Singh   │ anjali@example.com     │
+  └─────────┴────────────────┴────────────────────────┘
+
+────────────────────────────────────────────────────────────────────────────────
+  SUCCESS RESPONSE — 201 Created
+────────────────────────────────────────────────────────────────────────────────
+
+{
+  "success": true,
+  "message": "Passengers saved successfully",
+  "savedCount": 2,
+  "passengers": [
+    {
+      "id": 2,
+      "name": "Neha Sharma"
+    },
+    {
+      "id": 3,
+      "name": "Rahul Sharma"
+    }
+  ]
+}
+
+  Note: "id" is the auto-generated saved_pax_id from the DB.
+        It increments with each insert.
+
+────────────────────────────────────────────────────────────────────────────────
+  ERROR RESPONSES
+────────────────────────────────────────────────────────────────────────────────
+
+  400 Bad Request — Empty passenger list:
+  {
+    "success": false,
+    "error": "Passenger list cannot be empty"
+  }
+
+  400 Bad Request — Missing required field:
+  {
+    "success": false,
+    "error": "Passenger name is required"
+  }
+
+  500 Internal Server Error — DB failure:
+  {
+    "success": false,
+    "error": "Failed to save passengers"
+  }
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  POSTMAN QUICK TEST COMMANDS (PowerShell)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ── API 1: Create Booking ──
+
+  $body = '{"userId":"U001","flightId":"F103","cabinClass":"Economy","selectedSeats":["1A","1B"],"passengerList":[{"name":"Umesh Prasad","age":25,"gender":"Male"},{"name":"Priya Sharma","age":23,"gender":"Female"}],"meals":{"veg":1,"nonVeg":1}}'
+  Invoke-RestMethod -Uri "http://localhost:8089/api/bookings" -Method POST -ContentType "application/json" -Body $body | ConvertTo-Json -Depth 10
+
+  ── API 2: Bulk Save Passengers ──
+
+  $body = '{"userId":"U002","passengers":[{"name":"Neha Sharma","age":26,"gender":"Female","relation":"Spouse","dob":"1998-05-10","email":"neha@example.com","phone":"+91-9876543299"}]}'
+  Invoke-RestMethod -Uri "http://localhost:8089/api/saved-passengers/bulk" -Method POST -ContentType "application/json" -Body $body | ConvertTo-Json -Depth 10
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  DATABASE CONFIG SUMMARY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  URL      : jdbc:postgresql://localhost:5432/airline_reservation_system
+  Username : postgres
+  Password : Umesh@1605
+  Port     : 8089
+
+  Tables written by this API:
+  ┌─────────────────────┬────────────────────────────────────────────────┐
+  │ Table               │ Written By                                     │
+  ├─────────────────────┼────────────────────────────────────────────────┤
+  │ bookings            │ POST /api/bookings                             │
+  │ passengers          │ POST /api/bookings                             │
+  │ booking_seats       │ POST /api/bookings                             │
+  │ seats               │ POST /api/bookings (updates seat_status)       │
+  │ meal_preference     │ POST /api/bookings                             │
+  │ saved_passengers    │ POST /api/saved-passengers/bulk                │
+  └─────────────────────┴────────────────────────────────────────────────┘
+
+================================================================================
+  END OF REFERENCE
+================================================================================
